@@ -1,0 +1,9 @@
+[meta]
+name = "Hub Plus"
+version = "0.1.0"
+author = "AnythingGoes"
+description = "The game's track hub plus search: find maps by name or author as you type, see how many players have each map, sort every way, filter by your own progress."
+min_host = "0.23.0"
+
+[script]
+files = ["main.as"]
