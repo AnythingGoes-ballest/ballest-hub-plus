@@ -6,7 +6,7 @@ list. Paging, the info panel, medals, the queue and the play button all work as 
 
 ```
 [search maps, or authors by name ......................................................... x]
-[top rated ..........v] [any author ............v] [any progress ..........v]
+[trending this week .v] [any author ............v] [any progress ..........v]
 Showing 19 of the 25 maps on this page (not finished)
 ```
 
@@ -16,7 +16,6 @@ Showing 19 of the 25 maps on this page (not finished)
   titles, descriptions and tags. The **x** at the box's end empties it and keeps the hub on the page it's on.
 - **Authors by name:** searching also fills the author list with every author whose name matches, with how many maps
   each has. Pick one to see their maps.
-- **More by this author:** a button after the author's name in the hub's info panel shows the rest of their maps.
 - **Downloads:** on the hub's downloads page, typing narrows your downloaded maps right there, by map or author name.
 - **The hub's own filter panel still applies:** tags picked there narrow every Hub Plus search too.
 
@@ -27,8 +26,10 @@ subscribers, next to a little person.
 
 ## Sort
 
-The game's own sorts (best match, top rated, trending today, this week, this month or this year, newest, oldest,
-name, recently updated) and Steam's (most played, most subscribed, most liked). A text search starts on best match.
+The sorts the game's own hub sort doesn't have: trending today, this week, this month or this year, name, recently
+updated, most subscribed and best match. (Since the game's October 6 update its hub sorts by most played, newest,
+oldest, likes and trending itself, so those were taken out of this list in 0.2.0.) A text search starts on best
+match.
 One author's maps sort by newest, oldest, name, recently updated or top rated (the others don't apply to one
 player's maps on Steam).
 
@@ -46,8 +47,7 @@ newer.
 ## How it works
 
 - **Searches:** `Hub::Search` makes them the way the game makes its own: its query builder, then its list. `Hub::HideEntry`
-  hides maps on the list. The row is a plugin window docked into the hub (`Window.DockInHub`); the author button is
-  `Hub::SetAuthorButton`, the player counts `Hub::SetEntryBadge` with `Workshop::Subscribers`.
+  hides maps on the list. The row is a plugin window docked into the hub (`Window.DockInHub`); the player counts `Hub::SetEntryBadge` with `Workshop::Subscribers`.
 - **Author names:** every map is loaded once a session in the background (`Workshop::Find`) to learn who made what.
   Their names come from Steam (`Workshop::Name`) and are kept between sessions, so author search works straight away.
 - **Your progress:**

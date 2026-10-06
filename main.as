@@ -15,12 +15,11 @@
 //   * authors by name: every map is loaded once a session in the background (Workshop::Find, 50 a query) to learn
 //     who made what; their names (Workshop::Name) are kept between sessions. Searching lists the authors whose names
 //     match in the author list; picking one shows their maps;
-//   * more by this author: a button after the author's name in the hub's info panel (Hub::SetAuthorButton);
 //   * players: every thumbnail on screen shows how many players have the map (Hub::SetEntryBadge, Steam's unique
 //     subscribers);
-//   * sorts: the game's own (best match, top rated, trending over a day, week, month or year, newest, oldest, name,
-//     recently updated) and Steam's (most played, most subscribed, most liked). One author's maps sort by newest,
-//     oldest, name, recently updated or top rated only;
+//   * sorts the game's own hub sort doesn't offer (since its 2026-10-06 update it sorts by most played, newest, oldest,
+//     likes and trending itself): trending over a day, week, month or year, name, recently updated, most subscribed
+//     and best match. One author's maps sort by newest, oldest, name, recently updated or top rated only;
 //   * your progress: maps on each page that don't match are hidden (Hub::HideEntry). Finished maps and medals come
 //     from the game's save (Workshop::MyMedal); played ones from Steam's list of the maps you've played, the save, and
 //     the workshop maps this plugin has seen you on.
@@ -358,11 +357,12 @@ bool Played(const string &in id)
 // Sorts by Hub::Search's names: the game's own and Steam's. One author's maps (a Steam list of theirs) sort only by
 // newest, oldest, name, recently updated and top rated (measured: the game's builder refuses the rest for an author).
 // Trending is Steam's trend over a window of days; each window is its own entry ("trending:7").
-const array<string> SORTS = {"top rated", "trending today", "trending this week", "trending this month",
-                             "trending this year", "newest", "oldest", "name", "recently updated", "most played",
-                             "most subscribed", "most liked", "best match"};
-const array<string> SORT_KEYS = {"top", "trending:1", "trending:7", "trending:30", "trending:365", "new", "oldest",
-                                 "title", "updated", "played", "subscribed", "liked", "relevance"};
+// Since the game's 2026-10-06 update its own hub sorts by popularity (most played), date (newest and oldest), likes,
+// recent and trending: those are no longer listed here. What's left is what the game's sort doesn't offer.
+const array<string> SORTS = {"trending today", "trending this week", "trending this month", "trending this year",
+                             "name", "recently updated", "most subscribed", "best match"};
+const array<string> SORT_KEYS = {"trending:1", "trending:7", "trending:30", "trending:365", "title", "updated",
+                                 "subscribed", "relevance"};
 const array<string> AUTHOR_SORTS = {"newest", "oldest", "name", "recently updated", "top rated"};
 const array<string> AUTHOR_SORT_KEYS = {"new", "oldest", "title", "updated", "top"};
 const array<string> PROGRESS = {"any progress", "not played", "played, not finished", "not finished", "finished",
@@ -380,8 +380,8 @@ array<string> authorChoices;            // Steam ids behind authorList's options
 array<string> sortKeys;                 // Hub::Search's sort behind each of sortList's options
 bool resultsDirty = false;
 
-//   [search maps, or authors by name ...........................] [search] [more by this author] [clear]
-//   [top rated .............v] [any author ...............v] [any progress ...........v]
+//   [search maps, or authors by name ...........................] [search] [clear]
+//   [trending this week .....v] [any author ...............v] [any progress ...........v]
 //   Showing 19 of the 25 maps on this page (not finished)        (only while there's something to say)
 //
 // The hub's column is about 790 pixels wide (measured), so the second row is three dropdowns and nothing else.
@@ -397,7 +397,7 @@ void BuildRow()
     search.clearButton = true;          // the x at its right end empties it
     row.NewRow();
     @sortList = row.AddDropdown(240);
-    SetSorts(false, "top");
+    SetSorts(false, "trending:7");
     @authorList = row.AddDropdown(270);
     SetAuthorChoices(array<string>());
     @progressList = row.AddDropdown(240);
@@ -433,7 +433,7 @@ void SetSorts(bool forAuthor, const string &in keep)
     }
     int at = sortKeys.find(keep);
     if (at < 0)
-        at = sortKeys.find(forAuthor ? "new" : "top");
+        at = sortKeys.find(forAuthor ? "new" : "trending:7");
     sortList.selected = at;
 }
 
@@ -441,7 +441,7 @@ string SortKey()
 {
     int at = sortList.selected;
     if (at < 0 || at >= int(sortKeys.length()))
-        return "top";
+        return authorSorts ? "new" : "trending:7";
     return sortKeys[at];
 }
 
@@ -522,11 +522,11 @@ void Submit(const string &in text, bool show = true)
     SetAuthorChoices(matches);          // a new search is of every author's maps
     if (authorSorts)
         SetSorts(false, SortKey());
-    // Text reads best by how well maps match it; back to top rated when the box is emptied.
-    if (query != "" && SortKey() == "top")
+    // Text reads best by how well maps match it; back to trending when the box is emptied.
+    if (query != "" && SortKey() == "trending:7")
         sortList.selected = sortKeys.find("relevance");
     else if (query == "" && SortKey() == "relevance")
-        sortList.selected = sortKeys.find("top");
+        sortList.selected = sortKeys.find("trending:7");
     Search(show);
     if (matches.length() == 1)
         message = "1 author's name matches \"" + query + "\": pick them in the author list to see their maps";
@@ -654,7 +654,7 @@ void ClearSearch()
     message = "";
     SetAuthorChoices(array<string>());
     if (SortKey() == "relevance")
-        sortList.selected = sortKeys.find("top");
+        sortList.selected = sortKeys.find("trending:7");
     if (searched)
         Search(Hub::View() == "list");
 }
@@ -701,17 +701,6 @@ void UpdateRow()
     }
     if (progressList.Changed())
         message = "";
-    if (Hub::AuthorButtonClicked())     // "more by this author", next to the name in the hub's info panel
-    {
-        string author = Hub::FocusedAuthor();
-        if (author != "")
-        {
-            array<string> one = {author};
-            SetAuthorChoices(one, author);
-            message = "";
-            Search();
-        }
-    }
     UpdateBadges();
     FilterEntries();
     string text = Status();
@@ -730,7 +719,6 @@ void Main()
     LoadNames();
     LoadPlayed();
     BuildRow();
-    Hub::SetAuthorButton("more by this author");
     Log::Info("hub plus ready");
 }
 
